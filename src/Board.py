@@ -134,7 +134,6 @@ class Board:
         self.board[tile2[1], tile2[0]] = piece
         self.board[tile1[1], tile1[0]] = "-"
         self.undo_idx += 1
-        print(self.undo_idx)
         self.update_board()
 
     def can_move(self):
@@ -168,28 +167,74 @@ class Board:
         # white pawns
         if self.board[tile[1], tile[0]] == "wP" and self.board[tile[1] - 1, tile[0]] == "-":
             if tile[1] == 6 and self.board[tile[1] - 2, tile[0]] == "-":
-                self.draw_move_preview((tile[0], tile[1] - 1))
-                self.draw_move_preview((tile[0], tile[1] - 2))
                 return [(tile[0], tile[1] - 1), (tile[0], tile[1] - 2)]
             else:
-                self.draw_move_preview((tile[0], tile[1] - 1))
                 return [(tile[0], tile[1] - 1)]
 
         # black pawns
         if self.board[tile[1], tile[0]] == "bP" and self.board[tile[1] + 1, tile[0]] == "-":
             if tile[1] == 1 and self.board[tile[1] + 2, tile[0]] == "-":
-                self.draw_move_preview((tile[0], tile[1] + 1))
-                self.draw_move_preview((tile[0], tile[1] + 2))
                 return [(tile[0], tile[1] + 1), (tile[0], tile[1] + 2)]
             else:
-                self.draw_move_preview((tile[0], tile[1] + 1))
                 return [(tile[0], tile[1] + 1)]
 
-    def draw_move_preview(self, tile):
+        # rooks
+        if self.board[tile[1], tile[0]] == "wR" or self.board[tile[1], tile[0]] == "bR":
+            moves = []
+            # upwards
+            moves.extend(self.check_above_line(tile))
+            # downwards
+            moves.extend(self.check_below_line(tile))
+            # right
+            moves.extend(self.check_right_line(tile))
+            # left
+            moves.extend(self.check_left_line(tile))
+
+            return moves
+
+    def draw_move_preview(self, tile_list):
         """
         Draws the circles to indicate possible moves.
         :param tile: tuple
         """
-        p.draw.circle(self.screen, p.Color((211, 211, 211)), (
-        tile[0] * self.square_size + self.square_size / 2, tile[1] * self.square_size + self.square_size / 2),
-                      self.square_size / 3)
+        for tile in tile_list:
+            p.draw.circle(self.screen, p.Color((211, 211, 211)), (
+                tile[0] * self.square_size + self.square_size / 2, tile[1] * self.square_size + self.square_size / 2),
+                          self.square_size / 3)
+
+    # all methods that check possible moves in a particular shape
+    def check_above_line(self, tile):
+        moves = []
+        for y_up in range(tile[1] - 1, -1, -1):  # all moves above the rook
+            if self.board[y_up, tile[0]] == "-":
+                moves.append((tile[0], y_up))
+            else:
+                break
+        return moves
+
+    def check_below_line(self, tile):
+        moves = []
+        for y_down in range(tile[1] + 1, 8, 1):  # all moves below the rook
+            if self.board[y_down, tile[0]] == "-":
+                moves.append((tile[0], y_down))
+            else:
+                break
+        return moves
+
+    def check_right_line(self, tile):
+        moves = []
+        for x_right in range(tile[0] + 1, 8, 1):  # all moves to the right of the rook
+            if self.board[tile[1], x_right] == "-":
+                moves.append((x_right, tile[1]))
+            else:
+                break
+        return moves
+
+    def check_left_line(self, tile):
+        moves = []
+        for x_left in range(tile[0] - 1, -1, -1):  # all moves to the right of the rook
+            if self.board[tile[1], x_left] == "-":
+                moves.append((x_left, tile[1]))
+            else:
+                break
+        return moves

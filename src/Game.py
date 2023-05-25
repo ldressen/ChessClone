@@ -30,8 +30,14 @@ class Game:
                         self.board.draw_board()
                         self.board.clicked_on_tile(tile)
                         possible_moves = self.board.get_all_possible_moves(tile)
+                        self.board.draw_move_preview(possible_moves)
                         if possible_moves is None:
                             on_tile_clicked = False
+                    # check if clicked on same tile again and remove possible moves
+                    elif tile == store_tile:
+                        on_tile_clicked = False
+                        self.board.update_board()
+                        possible_moves = None
                     # only really move piece if tile is empty (TODO: or can take) and there are possible moves and
                     #  you are not on an  earlier move
                     elif self.board.board[tile[1], tile[0]] == "-" and on_tile_clicked and possible_moves is not None and self.board.can_move():
