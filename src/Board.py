@@ -175,19 +175,8 @@ class Board:
         """
         piece: Piece = self.board[tile[1], tile[0]]
 
-        # white pawns
-        if piece.get_image_name() == "wP" and self.board[tile[1] - 1, tile[0]] == "-":
-            if tile[1] == 6 and self.board[tile[1] - 2, tile[0]] == "-":
-                return [(tile[0], tile[1] - 1), (tile[0], tile[1] - 2)]
-            else:
-                return [(tile[0], tile[1] - 1)]
-
-        # black pawns
-        if piece.get_image_name() == "bP" and self.board[tile[1] + 1, tile[0]] == "-":
-            if tile[1] == 1 and self.board[tile[1] + 2, tile[0]] == "-":
-                return [(tile[0], tile[1] + 1), (tile[0], tile[1] + 2)]
-            else:
-                return [(tile[0], tile[1] + 1)]
+        if piece.typ == "P":
+            return self.check_pawn_moves(tile)
 
         # rooks
         if piece.typ == "R":
@@ -243,10 +232,11 @@ class Board:
             return self.check_knight_moves(tile)
 
     def draw_capture_rect(self, tile):
-        p.draw.rect(self.screen, color=p.Color((211, 211, 211)), rect=p.Rect(tile[0] * self.square_size + 0.1 * self.square_size,
-                                                                             tile[1] * self.square_size + 0.1 * self.square_size,
-                                                                             self.square_size * 0.8,
-                                                                             self.square_size * 0.8), width=3,
+        p.draw.rect(self.screen, color=p.Color((211, 211, 211)),
+                    rect=p.Rect(tile[0] * self.square_size + 0.1 * self.square_size,
+                                tile[1] * self.square_size + 0.1 * self.square_size,
+                                self.square_size * 0.8,
+                                self.square_size * 0.8), width=3,
                     border_radius=1)
 
     def draw_move_preview(self, tile_list):
@@ -281,36 +271,68 @@ class Board:
     # all methods that check possible moves in a particular shape
     def check_above_line(self, tile):
         moves = []
+        og_piece: Piece = self.board[tile[1], tile[0]]
         for y_up in range(tile[1] - 1, -1, -1):  # all moves above the rook
-            if self.board[y_up, tile[0]] == "-":
+            piece = self.board[y_up, tile[0]]
+            if piece == "-":
                 moves.append((tile[0], y_up))
+            elif isinstance(piece, Piece):
+                if piece.typ == "K":
+                    break
+                elif (not piece.is_white() and og_piece.is_white()) or (piece.is_white() and not og_piece.is_white()):
+                    moves.append((tile[0], y_up))
+                break
             else:
                 break
         return moves
 
     def check_below_line(self, tile):
         moves = []
+        og_piece: Piece = self.board[tile[1], tile[0]]
         for y_down in range(tile[1] + 1, 8, 1):  # all moves below the rook
-            if self.board[y_down, tile[0]] == "-":
+            piece = self.board[y_down, tile[0]]
+            if piece == "-":
                 moves.append((tile[0], y_down))
+            elif isinstance(piece, Piece):
+                if piece.typ == "K":
+                    break
+                elif (not piece.is_white() and og_piece.is_white()) or (piece.is_white() and not og_piece.is_white()):
+                    moves.append((tile[0], y_down))
+                break
             else:
                 break
         return moves
 
     def check_right_line(self, tile):
         moves = []
+        og_piece: Piece = self.board[tile[1], tile[0]]
         for x_right in range(tile[0] + 1, 8, 1):  # all moves to the right of the rook
-            if self.board[tile[1], x_right] == "-":
+            piece = self.board[tile[1], x_right]
+            if piece == "-":
                 moves.append((x_right, tile[1]))
+            elif isinstance(piece, Piece):
+                if piece.typ == "K":
+                    break
+                elif (not piece.is_white() and og_piece.is_white()) or (piece.is_white() and not og_piece.is_white()):
+                    moves.append((x_right, tile[1]))
+                break
             else:
                 break
         return moves
 
     def check_left_line(self, tile):
         moves = []
+        og_piece: Piece = self.board[tile[1], tile[0]]
         for x_left in range(tile[0] - 1, -1, -1):  # all moves to the right of the rook
-            if self.board[tile[1], x_left] == "-":
+            piece = self.board[tile[1], x_left]
+            if piece == "-":
                 moves.append((x_left, tile[1]))
+            elif isinstance(piece, Piece):
+                if piece.typ == "K":
+                    break
+                elif (not piece.is_white() and og_piece.is_white()) or (piece.is_white() and not og_piece.is_white()):
+                    moves.append((x_left, tile[1]))
+                break
             else:
                 break
         return moves
@@ -318,8 +340,17 @@ class Board:
     def check_upper_left_right_diagonal(self, tile):
         moves = []
         x, y = tile[0] - 1, tile[1] - 1
-        while x >= 0 and y >= 0 and self.board[y, x] == "-":
-            moves.append((x, y))
+        og_piece = self.board[tile[1], tile[0]]
+        while x >= 0 and y >= 0:
+            piece = self.board[y, x]
+            if piece == "-":
+                moves.append((x, y))
+            elif isinstance(piece, Piece):
+                if piece.typ == "K":
+                    break
+                elif (not piece.is_white() and og_piece.is_white()) or (piece.is_white() and not og_piece.is_white()):
+                    moves.append((x, y))
+                break
             x -= 1
             y -= 1
 
@@ -328,8 +359,17 @@ class Board:
     def check_lower_left_right_diagonal(self, tile):
         moves = []
         x, y = tile[0] + 1, tile[1] + 1
-        while x <= 7 and y <= 7 and self.board[y, x] == "-":
-            moves.append((x, y))
+        og_piece = self.board[tile[1], tile[0]]
+        while x <= 7 and y <= 7:
+            piece = self.board[y, x]
+            if piece == "-":
+                moves.append((x, y))
+            elif isinstance(piece, Piece):
+                if piece.typ == "K":
+                    break
+                elif (not piece.is_white() and og_piece.is_white()) or (piece.is_white() and not og_piece.is_white()):
+                    moves.append((x, y))
+                break
             x += 1
             y += 1
 
@@ -338,8 +378,17 @@ class Board:
     def check_upper_right_left_diagonal(self, tile):
         moves = []
         x, y = tile[0] + 1, tile[1] - 1
-        while x <= 7 and y >= 0 and self.board[y, x] == "-":
-            moves.append((x, y))
+        og_piece = self.board[tile[1], tile[0]]
+        while x <= 7 and y >= 0:
+            piece = self.board[y, x]
+            if piece == "-":
+                moves.append((x, y))
+            elif isinstance(piece, Piece):
+                if piece.typ == "K":
+                    break
+                elif (not piece.is_white() and og_piece.is_white()) or (piece.is_white() and not og_piece.is_white()):
+                    moves.append((x, y))
+                break
             x += 1
             y -= 1
 
@@ -348,8 +397,17 @@ class Board:
     def check_lower_right_left_diagonal(self, tile):
         moves = []
         x, y = tile[0] - 1, tile[1] + 1
-        while x >= 0 and y <= 7 and self.board[y, x] == "-":
-            moves.append((x, y))
+        og_piece = self.board[tile[1], tile[0]]
+        while x >= 0 and y <= 7:
+            piece = self.board[y, x]
+            if piece == "-":
+                moves.append((x, y))
+            elif isinstance(piece, Piece):
+                if piece.typ == "K":
+                    break
+                elif (not piece.is_white() and og_piece.is_white()) or (piece.is_white() and not og_piece.is_white()):
+                    moves.append((x, y))
+                break
             x -= 1
             y += 1
 
@@ -359,19 +417,25 @@ class Board:
         moves = []
         x_start = tile[0]
         y_start = tile[1]
-
+        og_piece = self.board[tile[1], tile[0]]
         for x in range(x_start - 1, x_start + 2):
             for y in range(y_start - 1, y_start + 2):
-                if 0 <= x < 8 and 0 <= y < 8 and self.board[y, x] == "-":
-                    moves.append((x, y))
+                if 0 <= x < 8 and 0 <= y < 8:
+                    piece = self.board[y, x]
+                    if piece == "-":
+                        moves.append((x, y))
+                    elif isinstance(piece, Piece):
+                        if piece.typ == "K":
+                            pass
+                        elif (not piece.is_white() and og_piece.is_white()) or (
+                                piece.is_white() and not og_piece.is_white()):
+                            moves.append((x, y))
 
         if self.check_short_castle():
             moves.append("short_castle")
 
         if self.check_long_castle():
             moves.append("long_castle")
-
-        print(moves)
 
         return moves
 
@@ -402,10 +466,12 @@ class Board:
             elif (4, 0) == move[0]:
                 black_king_moved = True
         if not white_king_moved and self.board[7, 3] == "-" and self.board[
-            7, 2] == "-" and self.board[7, 1] == "-" and isinstance(self.board[7, 0], Piece) and self.board[7, 0].get_image_name() == "wR":
+            7, 2] == "-" and self.board[7, 1] == "-" and isinstance(self.board[7, 0], Piece) and self.board[
+            7, 0].get_image_name() == "wR":
             return True
         elif not black_king_moved and self.board[0, 3] == "-" and self.board[
-            0, 2] == "-" and self.board[0, 1] == "-" and isinstance(self.board[0, 0], Piece) and self.board[0, 0].get_image_name() == "bR":
+            0, 2] == "-" and self.board[0, 1] == "-" and isinstance(self.board[0, 0], Piece) and self.board[
+            0, 0].get_image_name() == "bR":
             return True
 
         return False
@@ -438,29 +504,151 @@ class Board:
         moves = []
         x = tile[0]
         y = tile[1]
+        og_piece = self.board[tile[1], tile[0]]
         # above right
-        if 0 <= x + 1 < 8 and 0 <= y - 2 < 8 and self.board[y - 2, x + 1] == "-":
-            moves.append((x + 1, y - 2))
+        if 0 <= x + 1 < 8 and 0 <= y - 2 < 8:
+            piece = self.board[y - 2, x + 1]
+            if piece == "-":
+                moves.append((x + 1, y - 2))
+            elif isinstance(piece, Piece):
+                if piece.typ == "K":
+                    pass
+                elif (not piece.is_white() and og_piece.is_white()) or (
+                        piece.is_white() and not og_piece.is_white()):
+                    moves.append((x+1, y-2))
+
         # above left
-        if 0 <= x - 1 < 8 and 0 <= y - 2 < 8 and self.board[y - 2, x - 1] == "-":
-            moves.append((x - 1, y - 2))
+        if 0 <= x - 1 < 8 and 0 <= y - 2 < 8:
+            piece = self.board[y - 2, x - 1]
+            if piece == "-":
+                moves.append((x - 1, y - 2))
+            elif isinstance(piece, Piece):
+                if piece.typ == "K":
+                    pass
+                elif (not piece.is_white() and og_piece.is_white()) or (
+                        piece.is_white() and not og_piece.is_white()):
+                    moves.append((x-1, y-2))
+
         # below right
-        if 0 <= x + 1 < 8 and 0 <= y + 2 < 8 and self.board[y + 2, x + 1] == "-":
-            moves.append((x + 1, y + 2))
+        if 0 <= x + 1 < 8 and 0 <= y + 2 < 8:
+            piece = self.board[y + 2, x + 1]
+            if piece == "-":
+                moves.append((x + 1, y + 2))
+            elif isinstance(piece, Piece):
+                if piece.typ == "K":
+                    pass
+                elif (not piece.is_white() and og_piece.is_white()) or (
+                        piece.is_white() and not og_piece.is_white()):
+                    moves.append((x+1, y+2))
         # below left
-        if 0 <= x - 1 < 8 and 0 <= y + 2 < 8 and self.board[y + 2, x - 1] == "-":
-            moves.append((x - 1, y + 2))
+        if 0 <= x - 1 < 8 and 0 <= y + 2 < 8:
+            piece = self.board[y + 2, x - 1]
+            if piece == "-":
+                moves.append((x - 1, y + 2))
+            elif isinstance(piece, Piece):
+                if piece.typ == "K":
+                    pass
+                elif (not piece.is_white() and og_piece.is_white()) or (
+                        piece.is_white() and not og_piece.is_white()):
+                    moves.append((x-1, y+2))
         # right above
-        if 0 <= x + 2 < 8 and 0 <= y - 1 < 8 and self.board[y - 1, x + 2] == "-":
-            moves.append((x + 2, y - 1))
+        if 0 <= x + 2 < 8 and 0 <= y - 1 < 8:
+            piece = self.board[y - 1, x + 2]
+            if piece == "-":
+                moves.append((x + 2, y - 1))
+            elif isinstance(piece, Piece):
+                if piece.typ == "K":
+                    pass
+                elif (not piece.is_white() and og_piece.is_white()) or (
+                        piece.is_white() and not og_piece.is_white()):
+                    moves.append((x + 2, y - 1))
         # right below
-        if 0 <= x + 2 < 8 and 0 <= y + 1 < 8 and self.board[y + 1, x + 2] == "-":
-            moves.append((x + 2, y + 1))
+        if 0 <= x + 2 < 8 and 0 <= y + 1 < 8:
+            piece = self.board[y + 1, x + 2]
+            if piece == "-":
+                moves.append((x + 2, y + 1))
+            elif isinstance(piece, Piece):
+                if piece.typ == "K":
+                    pass
+                elif (not piece.is_white() and og_piece.is_white()) or (
+                        piece.is_white() and not og_piece.is_white()):
+                    moves.append((x + 2, y + 1))
         # left above
-        if 0 <= x - 2 < 8 and 0 <= y - 1 < 8 and self.board[y - 1, x - 2] == "-":
-            moves.append((x - 2, y - 1))
+        if 0 <= x - 2 < 8 and 0 <= y - 1 < 8:
+            piece = self.board[y - 1, x - 2]
+            if piece == "-":
+                moves.append((x - 2, y - 1))
+            elif isinstance(piece, Piece):
+                if piece.typ == "K":
+                    pass
+                elif (not piece.is_white() and og_piece.is_white()) or (
+                        piece.is_white() and not og_piece.is_white()):
+                    moves.append((x - 2, y - 1))
         # left below
-        if 0 <= x - 2 < 8 and 0 <= y + 1 < 8 and self.board[y + 1, x - 2] == "-":
-            moves.append((x - 2, y + 1))
+        if 0 <= x - 2 < 8 and 0 <= y + 1 < 8:
+            piece = self.board[y + 1, x - 2]
+            if piece == "-":
+                moves.append((x - 2, y + 1))
+            elif isinstance(piece, Piece):
+                if piece.typ == "K":
+                    pass
+                elif (not piece.is_white() and og_piece.is_white()) or (
+                        piece.is_white() and not og_piece.is_white()):
+                    moves.append((x - 2, y + 1))
+        return moves
+
+    def check_pawn_moves(self, tile):
+        piece: Piece = self.board[tile[1], tile[0]]
+        piece_u_l, piece_u_r, piece_l_l, piece_l_r, piece_u, piece_l = None, None, None, None, None, None
+        # check if out of bounds
+        if 0 <= tile[1] - 1 < 8 and 0 <= tile[0] - 1 < 8:
+            piece_u_l = self.board[tile[1] - 1, tile[0] - 1]
+        if 0 <= tile[1] - 1 < 8 and 0 <= tile[0] + 1 < 8:
+            piece_u_r = self.board[tile[1] - 1, tile[0] + 1]
+        if 0 <= tile[1] + 1 < 8 and 0 <= tile[0] - 1 < 8:
+            piece_l_l = self.board[tile[1] + 1, tile[0] - 1]
+        if 0 <= tile[1] + 1 < 8 and 0 <= tile[0] + 1 < 8:
+            piece_l_r = self.board[tile[1] + 1, tile[0] + 1]
+
+        if 0 <= tile[1] - 1 < 8:
+            piece_u = self.board[tile[1] - 1, tile[0]]
+        if 0 <= tile[1] + 1 < 8:
+            piece_l = self.board[tile[1] + 1, tile[0]]
+
+        moves = []
+        # white pawns
+        if piece.color == "w":
+            # check free space
+            if piece_u == "-":
+                moves.append((tile[0], tile[1] - 1))
+                # move 2 when on 6th rank
+                if tile[1] == 6 and self.board[tile[1] - 2, tile[0]] == "-":
+                    moves.append((tile[0], tile[1] - 2))
+            # check captures
+            if piece_u_l is not None and isinstance(piece_u_l, Piece):
+                if not piece_u_l.is_white():
+                    moves.append((tile[0] - 1, tile[1] - 1))
+            if piece_u_r is not None and isinstance(piece_u_r, Piece):
+                if not piece_u_r.is_white():
+                    moves.append((tile[0] + 1, tile[1] - 1))
+
+            # TODO: check en passant
+
+        # black pawns
+        elif piece.color == "b":
+            # check free space
+            if piece_l == "-":
+                moves.append((tile[0], tile[1] + 1))
+                # move 2 when on 1st rank
+                if tile[1] == 1 and self.board[tile[1] + 2, tile[0]] == "-":
+                    moves.append((tile[0], tile[1] + 2))
+            # check captures
+            if piece_l_l is not None and isinstance(piece_l_l, Piece):
+                if piece_l_l.is_white():
+                    moves.append((tile[0] - 1, tile[1] + 1))
+            if piece_l_r is not None and isinstance(piece_l_r, Piece):
+                if piece_l_r.is_white():
+                    moves.append((tile[0] + 1, tile[1] + 1))
+            # TODO: check en passant
 
         return moves

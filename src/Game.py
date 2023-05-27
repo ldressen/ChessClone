@@ -33,7 +33,6 @@ class Game:
                     if isinstance(piece, Piece) and not on_tile_clicked and self.board.can_move():
                         if (self.board.whites_turn and piece.is_white()) or (
                                 not self.board.whites_turn and not piece.is_white()):
-                            print(piece.get_image_name())
                             on_tile_clicked = True
 
                             store_tile = tile
@@ -52,10 +51,9 @@ class Game:
                         self.board.update_board()
                         possible_moves = None
 
-                    # only really move piece if tile is empty (TODO: or can take) and there are possible moves and
+                    # only really move piece if there are possible moves and
                     #  you are not on an  earlier move
-                    elif (piece == "-" or piece.get_image_name() == "wR" or
-                          piece.get_image_name() == "bR") and on_tile_clicked and possible_moves is not None and self.board.can_move():
+                    elif on_tile_clicked and possible_moves is not None and self.board.can_move():
 
                         if tile in possible_moves:
                             self.board.move_piece(store_tile, tile)
