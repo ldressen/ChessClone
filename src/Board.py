@@ -11,6 +11,7 @@ class Board:
 
     def __init__(self, size, screen):
         self.screen = screen
+        self.checks = []
         self.square_size = size / self.DIMENSION
         self.moveLog = []
         self.current_move = 0
@@ -19,6 +20,8 @@ class Board:
         self.move_log_index = 0
         self.whites_turn = True
         self.images = {}
+        self.in_check = False
+        self.sound_on = True
         self.board = np.array([
             [Piece("b", "R"), Piece("b", "N"), Piece("b", "B"), Piece("b", "Q"), Piece("b", "K"), Piece("b", "B"),
              Piece("b", "N"), Piece("b", "R")],
@@ -33,6 +36,14 @@ class Board:
             [Piece("w", "R"), Piece("w", "N"), Piece("w", "B"), Piece("w", "Q"), Piece("w", "K"), Piece("w", "B"),
              Piece("w", "N"), Piece("w", "R")]
         ])
+        p.init()
+        self.check_sound = p.mixer.Sound("../res/sounds/laser1.wav")
+        self.take_sound = p.mixer.Sound("../res/sounds/big-impact-7054.wav")
+        self.move_sound = p.mixer.Sound("../res/sounds/jumpland.wav")
+        self.checkmate_sound = p.mixer.Sound("../res/sounds/SUIII.wav")
+        self.check_sound.set_volume(0.25)
+        self.take_sound.set_volume(0.25)
+        self.move_sound.set_volume(0.25)
         self.load_images()
         self.draw_board()
         self.draw_pieces()
@@ -95,6 +106,8 @@ class Board:
         """
         self.draw_board()
         self.draw_pieces()
+        if self.in_check:
+            self.draw_capture_rect(self.checks[0][1], color=p.Color("red"))
 
     def move_piece(self, tile1, tile2):
         """
@@ -108,7 +121,10 @@ class Board:
         if tile2 == "long_castle":
             self.long_castle(tile1)
             return
-
+        if isinstance(self.board[tile2[1], tile2[0]], Piece) and self.sound_on:
+            p.mixer.Sound.play(self.take_sound)
+        elif self.sound_on:
+            p.mixer.Sound.play(self.move_sound)
         piece = self.board[tile1[1], tile1[0]]
         self.board[tile2[1], tile2[0]] = piece
         self.board[tile1[1], tile1[0]] = "-"
@@ -231,8 +247,8 @@ class Board:
         if piece.typ == "N":
             return self.check_knight_moves(tile)
 
-    def draw_capture_rect(self, tile):
-        p.draw.rect(self.screen, color=p.Color((211, 211, 211)),
+    def draw_capture_rect(self, tile, color=p.Color((211, 211, 211))):
+        p.draw.rect(self.screen, color=color,
                     rect=p.Rect(tile[0] * self.square_size + 0.1 * self.square_size,
                                 tile[1] * self.square_size + 0.1 * self.square_size,
                                 self.square_size * 0.8,
@@ -244,10 +260,9 @@ class Board:
         Draws the circles to indicate possible moves.
         :param tile_list: tuple
         """
-        if tile_list is None:
+        if tile_list is None or len(tile_list) == 0:
             return
         for tile in tile_list:
-
             if tile != "short_castle" and tile != "long_castle":
                 if self.board[tile[1], tile[0]] == "-":
                     p.draw.circle(self.screen, p.Color((211, 211, 211)), (
@@ -277,7 +292,8 @@ class Board:
             if piece == "-":
                 moves.append((tile[0], y_up))
             elif isinstance(piece, Piece):
-                if piece.typ == "K":
+                if piece.typ == "K" and piece.color != og_piece.color:
+                    self.checks.append((tile, (tile[0], y_up)))
                     break
                 elif (not piece.is_white() and og_piece.is_white()) or (piece.is_white() and not og_piece.is_white()):
                     moves.append((tile[0], y_up))
@@ -294,7 +310,8 @@ class Board:
             if piece == "-":
                 moves.append((tile[0], y_down))
             elif isinstance(piece, Piece):
-                if piece.typ == "K":
+                if piece.typ == "K" and piece.color != og_piece.color:
+                    self.checks.append((tile, (tile[0], y_down)))
                     break
                 elif (not piece.is_white() and og_piece.is_white()) or (piece.is_white() and not og_piece.is_white()):
                     moves.append((tile[0], y_down))
@@ -311,7 +328,8 @@ class Board:
             if piece == "-":
                 moves.append((x_right, tile[1]))
             elif isinstance(piece, Piece):
-                if piece.typ == "K":
+                if piece.typ == "K" and piece.color != og_piece.color:
+                    self.checks.append((tile, (x_right, tile[1])))
                     break
                 elif (not piece.is_white() and og_piece.is_white()) or (piece.is_white() and not og_piece.is_white()):
                     moves.append((x_right, tile[1]))
@@ -328,7 +346,8 @@ class Board:
             if piece == "-":
                 moves.append((x_left, tile[1]))
             elif isinstance(piece, Piece):
-                if piece.typ == "K":
+                if piece.typ == "K" and piece.color != og_piece.color:
+                    self.checks.append((tile, (x_left, tile[1])))
                     break
                 elif (not piece.is_white() and og_piece.is_white()) or (piece.is_white() and not og_piece.is_white()):
                     moves.append((x_left, tile[1]))
@@ -346,7 +365,8 @@ class Board:
             if piece == "-":
                 moves.append((x, y))
             elif isinstance(piece, Piece):
-                if piece.typ == "K":
+                if piece.typ == "K" and piece.color != og_piece.color:
+                    self.checks.append((tile, (x, y)))
                     break
                 elif (not piece.is_white() and og_piece.is_white()) or (piece.is_white() and not og_piece.is_white()):
                     moves.append((x, y))
@@ -365,7 +385,8 @@ class Board:
             if piece == "-":
                 moves.append((x, y))
             elif isinstance(piece, Piece):
-                if piece.typ == "K":
+                if piece.typ == "K" and piece.color != og_piece.color:
+                    self.checks.append((tile, (x, y)))
                     break
                 elif (not piece.is_white() and og_piece.is_white()) or (piece.is_white() and not og_piece.is_white()):
                     moves.append((x, y))
@@ -384,7 +405,8 @@ class Board:
             if piece == "-":
                 moves.append((x, y))
             elif isinstance(piece, Piece):
-                if piece.typ == "K":
+                if piece.typ == "K" and piece.color != og_piece.color:
+                    self.checks.append((tile, (x, y)))
                     break
                 elif (not piece.is_white() and og_piece.is_white()) or (piece.is_white() and not og_piece.is_white()):
                     moves.append((x, y))
@@ -403,7 +425,8 @@ class Board:
             if piece == "-":
                 moves.append((x, y))
             elif isinstance(piece, Piece):
-                if piece.typ == "K":
+                if piece.typ == "K" and piece.color != og_piece.color:
+                    self.checks.append((tile, (x, y)))
                     break
                 elif (not piece.is_white() and og_piece.is_white()) or (piece.is_white() and not og_piece.is_white()):
                     moves.append((x, y))
@@ -425,7 +448,7 @@ class Board:
                     if piece == "-":
                         moves.append((x, y))
                     elif isinstance(piece, Piece):
-                        if piece.typ == "K":
+                        if piece.typ == "K" and piece.color != og_piece.color:
                             pass
                         elif (not piece.is_white() and og_piece.is_white()) or (
                                 piece.is_white() and not og_piece.is_white()):
@@ -511,7 +534,8 @@ class Board:
             if piece == "-":
                 moves.append((x + 1, y - 2))
             elif isinstance(piece, Piece):
-                if piece.typ == "K":
+                if piece.typ == "K" and piece.color != og_piece.color:
+                    self.checks.append((tile, (x + 1, y - 2)))
                     pass
                 elif (not piece.is_white() and og_piece.is_white()) or (
                         piece.is_white() and not og_piece.is_white()):
@@ -523,7 +547,8 @@ class Board:
             if piece == "-":
                 moves.append((x - 1, y - 2))
             elif isinstance(piece, Piece):
-                if piece.typ == "K":
+                if piece.typ == "K" and piece.color != og_piece.color:
+                    self.checks.append((tile, (x - 1, y - 2)))
                     pass
                 elif (not piece.is_white() and og_piece.is_white()) or (
                         piece.is_white() and not og_piece.is_white()):
@@ -535,7 +560,8 @@ class Board:
             if piece == "-":
                 moves.append((x + 1, y + 2))
             elif isinstance(piece, Piece):
-                if piece.typ == "K":
+                if piece.typ == "K" and piece.color != og_piece.color:
+                    self.checks.append((tile, (x + 1, y + 2)))
                     pass
                 elif (not piece.is_white() and og_piece.is_white()) or (
                         piece.is_white() and not og_piece.is_white()):
@@ -546,7 +572,8 @@ class Board:
             if piece == "-":
                 moves.append((x - 1, y + 2))
             elif isinstance(piece, Piece):
-                if piece.typ == "K":
+                if piece.typ == "K" and piece.color != og_piece.color:
+                    self.checks.append((tile, (x - 1, y + 2)))
                     pass
                 elif (not piece.is_white() and og_piece.is_white()) or (
                         piece.is_white() and not og_piece.is_white()):
@@ -557,7 +584,8 @@ class Board:
             if piece == "-":
                 moves.append((x + 2, y - 1))
             elif isinstance(piece, Piece):
-                if piece.typ == "K":
+                if piece.typ == "K" and piece.color != og_piece.color:
+                    self.checks.append((tile, (x + 2, y - 1)))
                     pass
                 elif (not piece.is_white() and og_piece.is_white()) or (
                         piece.is_white() and not og_piece.is_white()):
@@ -568,7 +596,8 @@ class Board:
             if piece == "-":
                 moves.append((x + 2, y + 1))
             elif isinstance(piece, Piece):
-                if piece.typ == "K":
+                if piece.typ == "K" and piece.color != og_piece.color:
+                    self.checks.append((tile, (x + 2, y + 1)))
                     pass
                 elif (not piece.is_white() and og_piece.is_white()) or (
                         piece.is_white() and not og_piece.is_white()):
@@ -579,7 +608,8 @@ class Board:
             if piece == "-":
                 moves.append((x - 2, y - 1))
             elif isinstance(piece, Piece):
-                if piece.typ == "K":
+                if piece.typ == "K" and piece.color != og_piece.color:
+                    self.checks.append((tile, (x - 2, y - 1)))
                     pass
                 elif (not piece.is_white() and og_piece.is_white()) or (
                         piece.is_white() and not og_piece.is_white()):
@@ -590,7 +620,8 @@ class Board:
             if piece == "-":
                 moves.append((x - 2, y + 1))
             elif isinstance(piece, Piece):
-                if piece.typ == "K":
+                if piece.typ == "K" and piece.color != og_piece.color:
+                    self.checks.append((tile, (x - 2, y + 1)))
                     pass
                 elif (not piece.is_white() and og_piece.is_white()) or (
                         piece.is_white() and not og_piece.is_white()):
@@ -626,10 +657,14 @@ class Board:
                     moves.append((tile[0], tile[1] - 2))
             # check captures
             if piece_u_l is not None and isinstance(piece_u_l, Piece):
-                if not piece_u_l.is_white():
+                if piece_u_l.typ == "K" and piece_u_l.color != piece.color:
+                    self.checks.append((tile, (tile[0]-1, tile[1]-1)))
+                elif not piece_u_l.is_white():
                     moves.append((tile[0] - 1, tile[1] - 1))
             if piece_u_r is not None and isinstance(piece_u_r, Piece):
-                if not piece_u_r.is_white():
+                if piece_u_r.typ == "K" and piece_u_r.color != piece.color:
+                    self.checks.append((tile, (tile[0] + 1, tile[1] - 1)))
+                elif not piece_u_r.is_white():
                     moves.append((tile[0] + 1, tile[1] - 1))
 
             # TODO: check en passant
@@ -644,11 +679,72 @@ class Board:
                     moves.append((tile[0], tile[1] + 2))
             # check captures
             if piece_l_l is not None and isinstance(piece_l_l, Piece):
-                if piece_l_l.is_white():
+                if piece_l_l.typ == "K" and piece_l_l.color != piece.color:
+                    self.checks.append((tile, (tile[0] - 1, tile[1] + 1)))
+                elif piece_l_l.is_white():
                     moves.append((tile[0] - 1, tile[1] + 1))
             if piece_l_r is not None and isinstance(piece_l_r, Piece):
-                if piece_l_r.is_white():
+                if piece_l_r.typ == "K" and piece_l_r.color != piece.color:
+                    self.checks.append((tile, (tile[0] + 1, tile[1] + 1)))
+                elif piece_l_r.is_white():
                     moves.append((tile[0] + 1, tile[1] + 1))
             # TODO: check en passant
 
         return moves
+
+    def check_for_checks(self):
+        self.checks = []
+        for i in range(self.board.shape[0]):
+            for j in range(self.board.shape[1]):
+                if self.board[j, i] == "-":
+                    pass
+                else:
+                    self.get_all_possible_moves((i, j))
+        if len(self.checks) > 0:
+            print("moin")
+            self.check()
+            print(self.checks)
+
+    def check(self):
+        self.draw_capture_rect(self.checks[0][1], color=p.Color("Red"))
+        if self.sound_on:
+            p.mixer.Sound.play(self.check_sound)
+        self.in_check = True
+
+    def handle_check(self, tile, possible_moves):
+        moves = []
+        checks_tmp = self.checks
+        board_tmp = self.board.copy()
+        self.sound_on = False
+        for move in possible_moves:
+            board_tmp = self.board.copy()
+            self.move_piece(tile, move)
+            self.check_for_checks()
+            if len(self.checks) == 0:
+                moves.append(move)
+            self.checks = checks_tmp
+            self.board = board_tmp.copy()
+            self.update_board()
+        self.sound_on = True
+        print(moves)
+        return moves
+
+    def check_checkmate(self):
+        moves = []
+        self.sound_on = False
+        for x in range(self.board.shape[0]):
+            for y in range(self.board.shape[1]):
+                tile = (x, y)
+                piece = self.board[y, x]
+                if piece == "-":
+                    pass
+                elif (piece.is_white() and not self.whites_turn) or (not piece.is_white() and self.whites_turn):
+                    possible_moves = self.get_all_possible_moves(tile)
+                    possible_moves = self.handle_check(tile, possible_moves)
+                    if len(possible_moves) > 0:
+                        moves.append(possible_moves)
+        self.sound_on = True
+        if len(moves) == 0:
+            p.mixer.Sound.play(self.checkmate_sound)
+            return True
+        return False
